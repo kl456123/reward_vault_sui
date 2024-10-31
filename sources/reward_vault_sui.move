@@ -80,8 +80,8 @@ module reward_vault_sui::reward_vault_sui {
         }
     }
 
-    public fun withdraw<T: store>(self: &mut RewardVault, payment_id: u64, project_id: u64, recipient: address, coin_metadata: &CoinMetadata<T>, amount: u64, deadline: u64, signatures: vector<u8>, clock: &Clock, ctx: &mut TxContext): Coin<T> {
-        self.validate(payment_id, project_id, recipient, coin_metadata,  amount, deadline, signatures, clock);
+    public fun withdraw<T: store>(self: &mut RewardVault, payment_id: u64, project_id: u64, coin_metadata: &CoinMetadata<T>, amount: u64, deadline: u64, signatures: vector<u8>, clock: &Clock, ctx: &mut TxContext): Coin<T> {
+        self.validate(payment_id, project_id, ctx.sender(), coin_metadata,  amount, deadline, signatures, clock);
 
         let coin_type = CoinType<T>{};
         assert!(df::exists_(&self.id, coin_type), ENotExistedCoin);
@@ -91,8 +91,8 @@ module reward_vault_sui::reward_vault_sui {
         coin::split(balance, amount, ctx)
     }
 
-    public fun claim<T: store>(self: &mut RewardVault, payment_id: u64, project_id: u64, recipient: address, coin_metadata: &CoinMetadata<T>, amount: u64, deadline: u64, signatures: vector<u8>, clock: &Clock, ctx: &mut TxContext): Coin<T> {
-        self.validate(payment_id, project_id, recipient, coin_metadata,  amount, deadline, signatures, clock);
+    public fun claim<T: store>(self: &mut RewardVault, payment_id: u64, project_id: u64, coin_metadata: &CoinMetadata<T>, amount: u64, deadline: u64, signatures: vector<u8>, clock: &Clock, ctx: &mut TxContext): Coin<T> {
+        self.validate(payment_id, project_id, ctx.sender(), coin_metadata,  amount, deadline, signatures, clock);
 
         let coin_type = CoinType<T>{};
         assert!(df::exists_(&self.id, coin_type), ENotExistedCoin);
