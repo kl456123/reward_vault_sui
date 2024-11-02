@@ -19,7 +19,7 @@ Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-fram
 # Override = { local = "../conflicting/version", override = true }
 
 [addresses]
-reward_vault_sui = "0x0"
+reward_vault_sui = "0xd94252d8e5f5561ada000d29bb6437d2f45d94811099d3d230ce87ee56a89cab"
 
 # Named addresses will be accessible in Move as `@name`. They're also exported:
 # for example, `std = "0x1"` is exported by the Standard Library.
