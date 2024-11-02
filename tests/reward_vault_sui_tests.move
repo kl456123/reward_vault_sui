@@ -6,7 +6,6 @@ use sui::coin::{Self, Coin};
 use sui::clock::{Self, Clock};
 use sui::sui::SUI;
 
-const ENotImplemented: u64 = 0;
 
 
 #[test_only]
@@ -17,7 +16,7 @@ fun test_coin(amount: u64, ts: &mut Scenario): Coin<SUI> {
 #[test]
 fun test_reward_vault_sui() {
     let mut signers_vec: vector<vector<u8>> = vector::empty();
-    signers_vec.push_back(x"c8a46c3d92d195ac93cd1f9a2d39bcc47b63a8bc");
+    signers_vec.push_back(x"bd11861d13cafa8ad6e143da7034f8a907cd47a8");
     let owner = @0xCAFE;
     let project_owner = @0xFACE;
     let user = @0xFACE;
@@ -43,7 +42,7 @@ fun test_reward_vault_sui() {
         let project_id: u64 = 0;
         let coin = test_coin(init_amount, &mut ts);
         let deadline: u64 = 101;
-        let signatures: vector<u8> = x"642b7131b7464e783c1a2f2fb971384e339626d11a38de4a705b05abcfe451817cf419ac418b05b17d9ead0ab7475124d26b5f64016a01334a70d4895253646f1b";
+        let signatures: vector<u8> = x"a97ada8d607a863b04d305578c348b139e32aa71f969e921168044d2ff1b3d6213c7e70efc10afb2b61b0f0bcd5efc2d306b1d9132d3286dc340e769b4780dca1c";
         reward_vault.deposit<SUI>(payment_id, project_id,  coin, deadline, signatures, &clock, ts.ctx());
     };
 
@@ -56,7 +55,7 @@ fun test_reward_vault_sui() {
         let project_id: u64 = 0;
         let deadline: u64 = 101;
         let recipient: address = user;
-        let signatures: vector<u8> = x"642b7131b7464e783c1a2f2fb971384e339626d11a38de4a705b05abcfe451817cf419ac418b05b17d9ead0ab7475124d26b5f64016a01334a70d4895253646f1b";
+        let signatures: vector<u8> = x"2d74babc91e5a3650bb245e0769fddff6e56d2532602e7d49b79a05ccd43583c4bad6c9d9df902044075eb8c4f01dedca90c84162cb4465e00dd37207eb35b771c";
         reward_vault.claim<SUI>(payment_id, project_id, recipient, claimed_amount, deadline, signatures, &clock, ts.ctx());
     };
     // take effect for the claim 
@@ -75,7 +74,7 @@ fun test_reward_vault_sui() {
         let project_id: u64 = 0;
         let deadline: u64 = 101;
         let recipient: address = project_owner;
-        let signatures: vector<u8> = x"642b7131b7464e783c1a2f2fb971384e339626d11a38de4a705b05abcfe451817cf419ac418b05b17d9ead0ab7475124d26b5f64016a01334a70d4895253646f1b";
+        let signatures: vector<u8> = x"6c042a1a2bcc23fa113884f3d2ed61b50842ddd7103c4e5f0f97e679608f4e2d1d02d15cd00695e9858aec6e07fbb8a05ba58fedba82408a0b20e00fc97e49ee1b";
         reward_vault.withdraw<SUI>(payment_id, project_id, recipient, withdraw_amount, deadline, signatures, &clock, ts.ctx());
     };
 
@@ -91,7 +90,6 @@ fun test_reward_vault_sui() {
     ts::return_shared(reward_vault);
     clock.destroy_for_testing();
 
-
     {
         let type_name = std::type_name::get<SUI>();
         std::debug::print(&type_name.get_module());
@@ -102,6 +100,8 @@ fun test_reward_vault_sui() {
 
     ts.end();
 }
+
+const ENotImplemented: u64 = 0;
 
 #[test, expected_failure(abort_code = ::reward_vault_sui::reward_vault_sui_tests::ENotImplemented)]
 fun test_reward_vault_sui_fail() {

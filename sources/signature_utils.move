@@ -2,7 +2,6 @@ module reward_vault_sui::signature_utils {
 
     use sui::ecdsa_k1;
     use sui::address;
-    use std::debug;
     use std::ascii::String;
     use std::bcs;
 
@@ -13,21 +12,32 @@ module reward_vault_sui::signature_utils {
         
         msg.append(address::to_bytes(account));
         // package_id::module_id::coin_type, for example get 0x02::sui::SUI for SUI
-        msg.append(coin_type_name.into_bytes());
+        msg.append(encode_coin_type_name(coin_type_name));
         msg.append(bcs::to_bytes(&coin_amount));
         msg.append(bcs::to_bytes(&deadline));
 
-        debug::print(&bcs::to_bytes(&payment_id));
-        debug::print(&bcs::to_bytes(&project_id));
-        debug::print(&address::to_bytes(account));
-        debug::print(&bcs::to_bytes(&coin_amount));
-        debug::print(&bcs::to_bytes(&deadline));
-
-        debug::print(&msg);
-        debug::print(&signature);
         let addr = ecrecover_to_eth_address(signature, msg);
-        debug::print(&addr);
         addr
+    }
+
+    public fun encode_coin_type_name(coin_type_name: String): vector<u8> {
+        let len = address::length() * 2;
+        let str_bytes = coin_type_name.as_bytes();
+        let mut addr_bytes = vector[];
+        let mut i = 0;
+
+        // Read `len` bytes from the type name and push them to addr_bytes.
+        while (i < len) {
+            addr_bytes.push_back(str_bytes[i]);
+            i = i + 1;
+        };
+        let mut res = sui::hex::decode(addr_bytes);
+        let total_len = str_bytes.length();
+        while(i < total_len) {
+            res.push_back(str_bytes[i]);
+            i = i + 1;
+        };
+        res
     }
 
     /// Recover the Ethereum address using the signature and message, assuming the signature was                                                                  
