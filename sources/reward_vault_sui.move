@@ -14,7 +14,7 @@ module reward_vault_sui::reward_vault_sui {
     const EExpiration: u64 = 3;
     const ENotExistedSigner: u64 = 4;
     const ENotExistedCoin: u64 = 5;
-    const EInsufficientFunds: u64 = 6; 
+    const EInsufficientFunds: u64 = 6;
 
     public struct RewardVault has key {
         id: UID,
@@ -24,6 +24,12 @@ module reward_vault_sui::reward_vault_sui {
     }
 
     public struct CoinType<phantom T> has copy, drop, store {}
+
+    public struct RewardVaultCreatedEvent has copy, store, drop {
+        reward_vault_id: address,
+        owner: address,
+        signers: vector<vector<u8>>
+    }
 
     public struct TokenDepositedEvent has copy, store, drop {
         payment_id: u64,
@@ -58,13 +64,22 @@ module reward_vault_sui::reward_vault_sui {
             signers.insert(addr);
         };
 
+        let owner = ctx.sender();
+
         let reward_vault = RewardVault {
             id: object::new(ctx),
             signers,
-            owner: ctx.sender(),
+            owner,
             used_payment_ids: vec_set::empty()
         };
+        let reward_vault_id = object::id_address<RewardVault>(&reward_vault);
         transfer::share_object(reward_vault);
+
+        event::emit(RewardVaultCreatedEvent{
+            reward_vault_id,
+            owner,
+            signers: signers_vec,
+        });
     }
 
     public fun transfer_ownership(reward_vault: &mut RewardVault, new_owner: address, ctx: &TxContext) {
@@ -97,9 +112,9 @@ module reward_vault_sui::reward_vault_sui {
 
     public fun deposit<T>(self: &mut RewardVault, payment_id: u64, project_id: u64, coin: Coin<T>, deadline: u64, signatures: vector<u8>, clock: &Clock, ctx: &mut TxContext) {
         let coin_type_name: String = std::type_name::get<T>().into_string();
-        let coin_amount = coin::value(&coin); 
+        let coin_amount = coin::value(&coin);
         self.validate(payment_id, project_id, ctx.sender(), coin_type_name, coin_amount, deadline, signatures, clock);
-        
+
         // collect coins from payment
         let coin_type = CoinType<T> {};
         if (df::exists_(&self.id, coin_type)){
