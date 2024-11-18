@@ -4,6 +4,7 @@ module reward_vault_sui::reward_vault_sui {
     use reward_vault_sui::signature_utils;
     use sui::clock::Clock;
     use sui::event;
+    use sui::table::{Self, Table};
     use sui::coin::{Self, Coin};
     use sui::dynamic_field as df;
     use sui::address;
@@ -22,7 +23,7 @@ module reward_vault_sui::reward_vault_sui {
         id: UID,
         signers: VecSet<vector<u8>>,
         owner: address,
-        used_payment_ids: VecSet<u64>
+        used_payment_ids: Table<u64, bool>
     }
 
     public struct CoinType<phantom T> has copy, drop, store {}
@@ -78,7 +79,7 @@ module reward_vault_sui::reward_vault_sui {
             id: object::new(ctx),
             signers,
             owner,
-            used_payment_ids: vec_set::empty()
+            used_payment_ids: table::new<u64, bool>(ctx)
         };
         let reward_vault_id = object::id_address<RewardVault>(&reward_vault);
         transfer::share_object(reward_vault);
@@ -145,8 +146,8 @@ module reward_vault_sui::reward_vault_sui {
         assert!(deadline>clock.timestamp_ms(), EExpiration);
 
         // prevent replay
-        assert!(!self.used_payment_ids.contains(&payment_id), EUsedPaymentId);
-        self.used_payment_ids.insert(payment_id);
+        assert!(!self.used_payment_ids.contains(payment_id), EUsedPaymentId);
+        self.used_payment_ids.add(payment_id, true);
 
         // check signature
         let msg = encode_msg(payment_id, project_id, account, action_type, coin_type_name, coin_amount, deadline);

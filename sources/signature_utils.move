@@ -1,3 +1,4 @@
+/// Module: signature_utils
 module reward_vault_sui::signature_utils {
 
     use sui::ecdsa_k1;
