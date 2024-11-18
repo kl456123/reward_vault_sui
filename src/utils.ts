@@ -16,6 +16,7 @@ import {
   TokenDepositedEvent,
   TokenWithdrawalEvent,
   RewardsClaimedEvent,
+  ActionType,
 } from "../src/types";
 import {
   DEPOSIT_EVENT_TYPE,
@@ -50,18 +51,25 @@ export async function sendTx(
   return resp;
 }
 
-function createSignature(
+export function createSignature(
   paymentId: number,
   projectId: number,
   deadline: number,
+  actionType: ActionType,
   coinAmount: number,
   account: string,
   coinTypeName: string,
 ) {
+  const actionStr = ActionType[actionType] as "Deposit" | "Withdraw" | "Claim";
+  const enumList = [{ Deposit: null }, { Withdraw: null }, { Claim: null }];
+  const action = enumList[actionType];
+  const bcsEnum = { Deposit: null, Withdraw: null, Claim: null };
+
   const message: Uint8Array = new Uint8Array([
     ...bcs.u64().serialize(paymentId).toBytes(),
     ...bcs.U64.serialize(projectId).toBytes(),
     ...bcs.Address.serialize(account).toBytes(),
+    ...bcs.enum("ActionType", bcsEnum).serialize(action).toBytes(),
     ...encodeCoinTypeName(coinTypeName),
     ...bcs.U64.serialize(coinAmount).toBytes(),
     ...bcs.U64.serialize(deadline).toBytes(),
@@ -96,6 +104,7 @@ export async function deposit(
     paymentId,
     projectId,
     deadline,
+    ActionType.Deposit,
     coinAmount,
     account,
     coinTypeName,
@@ -139,6 +148,7 @@ export async function claim(
     paymentId,
     projectId,
     deadline,
+    ActionType.Claim,
     coinAmount,
     recipient,
     coinTypeName,
@@ -180,6 +190,7 @@ export async function withdraw(
     paymentId,
     projectId,
     deadline,
+    ActionType.Withdraw,
     coinAmount,
     recipient,
     coinTypeName,

@@ -25,7 +25,7 @@ fun test_reward_vault_sui() {
     {
         clock::share_for_testing(clock::create_for_testing(ts.ctx()));
     };
-    
+
     // create reward vault
     ts.next_tx(owner);
     let clock = ts.take_shared<Clock>();
@@ -42,7 +42,7 @@ fun test_reward_vault_sui() {
         let project_id: u64 = 0;
         let coin = test_coin(init_amount, &mut ts);
         let deadline: u64 = 101;
-        let signatures: vector<u8> = x"a97ada8d607a863b04d305578c348b139e32aa71f969e921168044d2ff1b3d6213c7e70efc10afb2b61b0f0bcd5efc2d306b1d9132d3286dc340e769b4780dca1c";
+        let signatures: vector<u8> = x"86fb8bf3f29d3a003402b425aa324da4e23820d3b327862d72d3e1ab517fad0162a7323f0269b185f4a63949b61f195bc580c3f8a23af9eba654a1ffea3035381c";
         reward_vault.deposit<SUI>(payment_id, project_id,  coin, deadline, signatures, &clock, ts.ctx());
     };
 
@@ -55,10 +55,10 @@ fun test_reward_vault_sui() {
         let project_id: u64 = 0;
         let deadline: u64 = 101;
         let recipient: address = user;
-        let signatures: vector<u8> = x"2d74babc91e5a3650bb245e0769fddff6e56d2532602e7d49b79a05ccd43583c4bad6c9d9df902044075eb8c4f01dedca90c84162cb4465e00dd37207eb35b771c";
+        let signatures: vector<u8> = x"c7f7b4022552ff1a0cfd3bf2d8a2c6a2390f0bc1267c7a17c75f94aa461a023a7245012bceafbffabd8578e605016ac6394c0a46b4ec5c685d8f9a40ad7bbabb1c";
         reward_vault.claim<SUI>(payment_id, project_id, recipient, claimed_amount, deadline, signatures, &clock, ts.ctx());
     };
-    // take effect for the claim 
+    // take effect for the claim
     ts.next_tx(user);
     {
         let coin = ts.take_from_address<Coin<SUI>>(user);
@@ -74,7 +74,7 @@ fun test_reward_vault_sui() {
         let project_id: u64 = 0;
         let deadline: u64 = 101;
         let recipient: address = project_owner;
-        let signatures: vector<u8> = x"6c042a1a2bcc23fa113884f3d2ed61b50842ddd7103c4e5f0f97e679608f4e2d1d02d15cd00695e9858aec6e07fbb8a05ba58fedba82408a0b20e00fc97e49ee1b";
+        let signatures: vector<u8> = x"ea9c685d7f6f943806797c30af5502ae161579348a6981e475a38b02b2fddd715eab8fd00805e70f34933134a8132b4fd9f2878e2b378626b2e8c05829c7536d1c";
         reward_vault.withdraw<SUI>(payment_id, project_id, recipient, withdraw_amount, deadline, signatures, &clock, ts.ctx());
     };
 

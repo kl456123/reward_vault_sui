@@ -6,7 +6,9 @@ module reward_vault_sui::reward_vault_sui {
     use sui::event;
     use sui::coin::{Self, Coin};
     use sui::dynamic_field as df;
+    use sui::address;
     use std::ascii::String;
+    use std::bcs;
 
     const EInvalidOwner: u64 = 0;
     const EInvalidSigner: u64 = 1;
@@ -24,6 +26,12 @@ module reward_vault_sui::reward_vault_sui {
     }
 
     public struct CoinType<phantom T> has copy, drop, store {}
+
+    public enum ActionType has drop {
+        Deposit,
+        Withdraw,
+        Claim
+    }
 
     public struct RewardVaultCreatedEvent has copy, store, drop {
         reward_vault_id: address,
@@ -82,12 +90,12 @@ module reward_vault_sui::reward_vault_sui {
         });
     }
 
-    public fun transfer_ownership(reward_vault: &mut RewardVault, new_owner: address, ctx: &TxContext) {
+    public fun transfer_ownership(reward_vault: &mut RewardVault, new_owner: address, ctx: &mut TxContext) {
         assert!(reward_vault.owner == ctx.sender(), EInvalidOwner);
         reward_vault.owner = new_owner;
     }
 
-    public fun update_signer(reward_vault: &mut RewardVault, addr: vector<u8>, add_or_remove: bool, ctx: &TxContext) {
+    public fun update_signer(reward_vault: &mut RewardVault, addr: vector<u8>, add_or_remove: bool, ctx: &mut TxContext) {
         assert!(reward_vault.owner == ctx.sender(), EInvalidOwner);
         if(add_or_remove) {
             assert!(reward_vault.signers.contains(&addr), ENotExistedSigner);
@@ -97,7 +105,42 @@ module reward_vault_sui::reward_vault_sui {
         }
     }
 
-    fun validate(self: &mut RewardVault, payment_id: u64, project_id: u64, account: address, coin_type_name: String, coin_amount: u64, deadline: u64, signatures: vector<u8>, clock: &Clock) {
+    fun encode_coin_type_name(coin_type_name: String): vector<u8> {
+        let len = address::length() * 2;
+        let str_bytes = coin_type_name.as_bytes();
+        let mut addr_bytes = vector[];
+        let mut i = 0;
+
+        // Read `len` bytes from the type name and push them to addr_bytes.
+        while (i < len) {
+            addr_bytes.push_back(str_bytes[i]);
+            i = i + 1;
+        };
+        let mut res = sui::hex::decode(addr_bytes);
+        let total_len = str_bytes.length();
+        while(i < total_len) {
+            res.push_back(str_bytes[i]);
+            i = i + 1;
+        };
+        res
+    }
+
+    fun encode_msg(payment_id: u64, project_id: u64, account: address, action_type: ActionType, coin_type_name: String, coin_amount: u64, deadline: u64): vector<u8> {
+        let mut msg: vector<u8> = vector::empty();
+        msg.append(bcs::to_bytes(&payment_id));
+        msg.append(bcs::to_bytes(&project_id));
+
+        msg.append(address::to_bytes(account));
+        msg.append(bcs::to_bytes(&action_type));
+        // package_id::module_id::coin_type, for example get 0x02::sui::SUI for SUI
+        msg.append(encode_coin_type_name(coin_type_name));
+        msg.append(bcs::to_bytes(&coin_amount));
+        msg.append(bcs::to_bytes(&deadline));
+
+        msg
+    }
+
+    fun validate(self: &mut RewardVault, payment_id: u64, project_id: u64, account: address, action_type: ActionType, coin_type_name: String, coin_amount: u64, deadline: u64, signatures: vector<u8>, clock: &Clock) {
         // check expiration
         assert!(deadline>clock.timestamp_ms(), EExpiration);
 
@@ -106,14 +149,15 @@ module reward_vault_sui::reward_vault_sui {
         self.used_payment_ids.insert(payment_id);
 
         // check signature
-        let signer = signature_utils::recover_signer(account, payment_id, project_id, coin_type_name, coin_amount, deadline, signatures);
+        let msg = encode_msg(payment_id, project_id, account, action_type, coin_type_name, coin_amount, deadline);
+        let signer = signature_utils::recover_signer(msg, signatures);
         assert!(self.signers.contains(&signer), EInvalidSigner);
     }
 
     public fun deposit<T>(self: &mut RewardVault, payment_id: u64, project_id: u64, coin: Coin<T>, deadline: u64, signatures: vector<u8>, clock: &Clock, ctx: &mut TxContext) {
         let coin_type_name: String = std::type_name::get<T>().into_string();
         let coin_amount = coin::value(&coin);
-        self.validate(payment_id, project_id, ctx.sender(), coin_type_name, coin_amount, deadline, signatures, clock);
+        self.validate(payment_id, project_id, ctx.sender(), ActionType::Deposit, coin_type_name, coin_amount, deadline, signatures, clock);
 
         // collect coins from payment
         let coin_type = CoinType<T> {};
@@ -135,7 +179,7 @@ module reward_vault_sui::reward_vault_sui {
 
     public fun withdraw<T>(self: &mut RewardVault, payment_id: u64, project_id: u64, recipient: address, amount: u64, deadline: u64, signatures: vector<u8>, clock: &Clock, ctx: &mut TxContext) {
         let coin_type_name: String = std::type_name::get<T>().into_string();
-        self.validate(payment_id, project_id, recipient, coin_type_name,  amount, deadline, signatures, clock);
+        self.validate(payment_id, project_id, recipient, ActionType::Withdraw, coin_type_name,  amount, deadline, signatures, clock);
 
         let coin_type = CoinType<T>{};
         assert!(df::exists_(&self.id, coin_type), ENotExistedCoin);
@@ -157,7 +201,7 @@ module reward_vault_sui::reward_vault_sui {
 
     public fun claim<T>(self: &mut RewardVault, payment_id: u64, project_id: u64, recipient: address, amount: u64, deadline: u64, signatures: vector<u8>, clock: &Clock, ctx: &mut TxContext) {
         let coin_type_name: String = std::type_name::get<T>().into_string();
-        self.validate(payment_id, project_id, recipient, coin_type_name, amount, deadline, signatures, clock);
+        self.validate(payment_id, project_id, recipient, ActionType::Claim, coin_type_name, amount, deadline, signatures, clock);
 
         let coin_type = CoinType<T>{};
         assert!(df::exists_(&self.id, coin_type), ENotExistedCoin);

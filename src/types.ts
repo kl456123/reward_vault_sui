@@ -29,3 +29,9 @@ export interface RewardVaultState {
   owner: string;
   signers: string[];
 }
+
+export enum ActionType {
+  Deposit,
+  Withdraw,
+  Claim,
+}
